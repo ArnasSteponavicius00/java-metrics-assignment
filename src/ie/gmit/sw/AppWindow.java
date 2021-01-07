@@ -1,13 +1,8 @@
 package ie.gmit.sw;
 
 import java.io.*;
-import java.time.*;
-import java.time.format.*;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
-import java.util.jar.JarEntry;
-import java.util.jar.JarInputStream;
 
 import javafx.application.*;
 import javafx.beans.property.*;
@@ -17,29 +12,22 @@ import javafx.geometry.*;
 import javafx.scene.*;
 import javafx.scene.control.*;
 import javafx.scene.control.TableColumn.*;
-import javafx.scene.image.*;
 import javafx.scene.layout.*;
 import javafx.stage.*;
 import javafx.util.*;
 
 public class AppWindow extends Application {
-	private ObservableList<Customer> customers; //The Model - a list of observers.
-	private TableView<Customer> tv; //The View - a composite of GUI components
-
-	private ObservableList<Classes> classes;
-	private TableView<Classes> classestv;
+	private ObservableList<MetricsImpl> metrics;
+	private TableView<MetricsImpl> metricsView;
+	private ObservableList<MetricsImpl> metricsImplArr = FXCollections.observableArrayList();
+	private Database db = new Database();
 
 	private TextField txtFile;
 
-	private List<String> packages = new ArrayList<>();
-
 	@Override
 	public void start(Stage stage) throws Exception {
-		CustomerFactory cf = CustomerFactory.getInstance();
-		customers = cf.getCustomers();
-
-		ClassFactory clf = ClassFactory.getInstance();
-		classes = clf.getClasses();
+		MetricsFactory mf = MetricsFactory.getInstance();
+		metrics = mf.getMetrics();
 
 		stage.setTitle("GMIT - B.Sc. in Computing (Software Development)");
 		stage.setWidth(800);
@@ -64,13 +52,7 @@ public class AppWindow extends Application {
 		
 		Button btnAdd = new Button("Add"); //A Leaf node
 		btnAdd.setOnAction(e -> { //Plant an observer on the button
-
-			customers.add(
-					new Customer("Sideshow Bob", 
-							LocalDateTime.of(1970, 7, 7, 0, 0), 
-							Status.Premium, 
-							new Image(new File("./images/bob.png").toURI().toString()))
-			);
+			System.out.println("add button");
 		});
 
 		toolBar.getItems().add(btnAdd); //Add to the parent node and build the tree
@@ -83,44 +65,41 @@ public class AppWindow extends Application {
 			 * remove it from the Model (ObservableList). Do not try to update
 			 * the view directly.
 			 */
-			
-			Customer c = tv.getSelectionModel().getSelectedItem();
-			customers.remove(c);
 
-			Classes cls = classestv.getSelectionModel().getSelectedItem();
-			classes.remove(cls);
+			MetricsImpl cls = metricsView.getSelectionModel().getSelectedItem();
+			metrics.remove(cls);
 		});
 		toolBar.getItems().add(btnDelete); //Add to the parent node and build the tree
 
 
-		Button btnSelect = new Button("Select"); //A Leaf node
+		Button btnSelect = new Button("Save to Database"); //A Leaf node
 		btnSelect.setOnAction(e -> { //Plant an observer on the button
+			db.saveToDatabase();
 
+			MetricsImpl cls = metricsView.getSelectionModel().getSelectedItem();
+			System.out.println(cls);
 
-			Classes cls = classestv.getSelectionModel().getSelectedItem();
-			try {
-//				String className = cls.toString();
-//				className.replace("/", ".");
-
-				//System.out.println(className);
-
-				Class cs = Class.forName("org.apache.commons.text.AlphabetConverter");
-
-				System.out.println(cs.getDeclaredMethods());
-			} catch (ClassNotFoundException classNotFoundException) {
-				classNotFoundException.printStackTrace();
-			}
 
 		});
 		toolBar.getItems().add(btnSelect); //Add to the parent node and build the tree
+
+		Button btnYurt = new Button("Print"); //A Leaf node
+		btnYurt.setOnAction(e -> { //Plant an observer on the button
+			MetricsImpl cls = metricsView.getSelectionModel().getSelectedItem();
+			System.out.println(cls.getClassName());
+
+			db.go();
+		});
+		toolBar.getItems().add(btnYurt); //Add to the parent node and build the tree
 		
 		/*
 		 * Add all the sub trees of nodes to the parent node and build the tree
 		 */
 		box.getChildren().add(getFileChooserPane(stage)); //Add the sub tree to the main tree
 
-		box.getChildren().add(getClassView());
-		box.getChildren().add(getTableView());
+		box.getChildren().add(getMetricsView());
+
+		//box.getChildren().add(getMetricsView());
 
 		box.getChildren().add(toolBar); //Add the sub tree to the main tree
 
@@ -146,23 +125,28 @@ public class AppWindow extends Application {
 		// Process the Jar File
 		Button btnProcess = new Button("Process"); //A leaf node
 		btnProcess.setOnAction(e -> { //Plant an observer on the button
-			File f = new File(txtFile.getText());
-			ClassFactory clf = ClassFactory.getInstance();
-			JarLoader jl = new JarLoader();
+			MetricsFactory clf = MetricsFactory.getInstance();
+			JarHandler handle = new JarHandler();
+			File file = new File(txtFile.getText());
 
-			System.out.println("[INFO] Processing file " + f.getName());
-			packages = jl.process(f);
+			System.out.println("[INFO] Processing Jar File " + file.getName());
+			try {
+				metricsImplArr = handle.process(file);
+			} catch (IOException ioException) {
+				ioException.printStackTrace();
+			}
 
-			System.out.println(packages);
-
-			// Loop over the arraylist of packages
-			for(String names : packages) {
-				classes.add(
-						new Classes(names)
+			// Loop over the arraylist of packages and add to List
+			for(MetricsImpl met : metricsImplArr) {
+				metrics.add(
+						new MetricsImpl(met.getClassName(),
+								met.getPackageName(),
+								met.getIsInterface(),
+								met.getModifiers())
 				);
 			}
 		});
-		
+
 		ToolBar tb = new ToolBar(); //A composite node
 		tb.getItems().add(btnOpen); //Add to the parent node and build a sub tree
 		tb.getItems().add(btnProcess); //Add to the parent node and build a sub tree
@@ -175,96 +159,48 @@ public class AppWindow extends Application {
 		return tp;
 	}
 
-	private TableView<Classes> getClassView() {
-		classestv = new TableView<>(classes); //A TableView is a composite node
-		classestv.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY); //Stretch columns to fit the window
+	/**
+	 * Method that returns the Table View of the classes inside the JAR File
+	 *
+	 * @return Table of classes in the processed JAR file
+	 */
+	private TableView<MetricsImpl> getMetricsView() {
+		metricsView = new TableView<>(metrics); //A TableView is a composite node
+		metricsView.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY); //Stretch columns to fit the window
 
-		TableColumn<Classes, String> name = new TableColumn<>("Class Name");
-		name.setCellValueFactory(new Callback<CellDataFeatures<Classes, String>, ObservableValue<String>>() {
-			public ObservableValue<String> call(CellDataFeatures<Classes, String> p) {
-				return new SimpleStringProperty(p.getValue().name());
+		TableColumn<MetricsImpl, String> name = new TableColumn<>("Class Name");
+		name.setCellValueFactory(new Callback<CellDataFeatures<MetricsImpl, String>, ObservableValue<String>>() {
+			public ObservableValue<String> call(CellDataFeatures<MetricsImpl, String> p) {
+				return new SimpleStringProperty(p.getValue().getClassName());
 			}
 		});
 
-		//Creates an observable table column from a String field extracted from the Customer class
-//		TableColumn<Classes, Number> loc = new TableColumn<>("LOC");
-//
-//		loc.setCellValueFactory(new Callback<CellDataFeatures<Classes, Number>, ObservableValue<Number>>() {
-//			public ObservableValue<Number> call(CellDataFeatures<Classes, Number> p) {
-//				return new SimpleIntegerProperty(p.getValue().loc());
-//			}
-//		});
-//
-//		TableColumn<Classes, Number> sloc = new TableColumn<>("SLOC");
-//
-//		sloc.setCellValueFactory(new Callback<CellDataFeatures<Classes, Number>, ObservableValue<Number>>() {
-//			public ObservableValue<Number> call(CellDataFeatures<Classes, Number> p) {
-//				return new SimpleIntegerProperty(p.getValue().sloc());
-//			}
-//		});
-
-		classestv.getColumns().add(name);
-//		classestv.getColumns().add(loc);
-//		classestv.getColumns().add(sloc);
-
-		return classestv;
-	}
-
-	private TableView<Customer> getTableView() {
-		/*
-		 * The next line is **very important**. We configure a View (TableView) with
-		 * a Model (ObservableList<Customer>). The Model is observable and will
-		 * propagate any changes to it to the View or Views that render it.
-		 */
-		tv = new TableView<>(customers); //A TableView is a composite node
-		tv.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY); //Stretch columns to fit the window
-
-
-		/*
-		 *  Create a TableColumn from the class Customer that displays some attribute
-		 *  as a String. This field is Observable and the method call() will be fired
-		 *  when the table is being refreshed or when the model is updated. The instance
-		 *  of the interface Callback is implemented as an anonymous inner class and acts
-		 *  as a Controller for the table column. Callback is also an example of an Observer
-		 *  and the inner class a ConcreteObserver. The method call() is analogous to the
-		 *  notify() method in the Observer Pattern.
-		 */
-		TableColumn<Customer, String> name = new TableColumn<>("Methods");
-		name.setCellValueFactory(new Callback<CellDataFeatures<Customer, String>, ObservableValue<String>>() {
-			public ObservableValue<String> call(CellDataFeatures<Customer, String> p) {
-				return new SimpleStringProperty(p.getValue().name());
+		TableColumn<MetricsImpl, String> packageName = new TableColumn<>("Package Name");
+		packageName.setCellValueFactory(new Callback<CellDataFeatures<MetricsImpl, String>, ObservableValue<String>>() {
+			public ObservableValue<String> call(CellDataFeatures<MetricsImpl, String> p) {
+				return new SimpleStringProperty(p.getValue().getPackageName());
 			}
 		});
 
-		//Creates an observable table column from a String field extracted from the Customer class
-		TableColumn<Customer, String> dob = new TableColumn<>("DOB");
-		dob.setCellValueFactory(new Callback<CellDataFeatures<Customer, String>, ObservableValue<String>>() {
-			public ObservableValue<String> call(CellDataFeatures<Customer, String> p) {
-				return new SimpleStringProperty(
-						DateTimeFormatter.ofLocalizedDate(FormatStyle.SHORT).format(p.getValue().dob()));
+		TableColumn<MetricsImpl, Boolean> isInterface = new TableColumn<>("Is Interface");
+		isInterface.setCellValueFactory(new Callback<CellDataFeatures<MetricsImpl, Boolean>, ObservableValue<Boolean>>() {
+			public ObservableValue<Boolean> call(CellDataFeatures<MetricsImpl, Boolean> p) {
+				return new SimpleBooleanProperty(p.getValue().getIsInterface());
 			}
 		});
 
-		//Creates an observable table column from a String field extracted from the Customer class
-		TableColumn<Customer, String> status = new TableColumn<>("Status");
-		status.setCellValueFactory(new Callback<CellDataFeatures<Customer, String>, ObservableValue<String>>() {
-			public ObservableValue<String> call(CellDataFeatures<Customer, String> p) {
-				return new SimpleStringProperty(p.getValue().status().toString());
+		TableColumn<MetricsImpl, Number> modifiers = new TableColumn<>("Modifiers");
+		modifiers.setCellValueFactory(new Callback<CellDataFeatures<MetricsImpl, Number>, ObservableValue<Number>>() {
+			public ObservableValue<Number> call(CellDataFeatures<MetricsImpl, Number> p) {
+				return new SimpleIntegerProperty(p.getValue().getModifiers());
 			}
 		});
 
-		//Creates an observable table column from an Image attribute of the Customer class
-		TableColumn<Customer, ImageView> img = new TableColumn<>("Image");
-		img.setCellValueFactory(new Callback<CellDataFeatures<Customer, ImageView>, ObservableValue<ImageView>>() {
-			public ObservableValue<ImageView> call(CellDataFeatures<Customer, ImageView> p) {
-				return new SimpleObjectProperty<>(new ImageView(p.getValue().image()));
-			}
-		});
+		metricsView.getColumns().add(name);
+		metricsView.getColumns().add(packageName);
+		metricsView.getColumns().add(isInterface);
+		metricsView.getColumns().add(modifiers);
 
-		tv.getColumns().add(name); //Add nodes to the tree
-		tv.getColumns().add(dob);  //Add nodes to the tree
-		tv.getColumns().add(status); //Add nodes to the tree
-		tv.getColumns().add(img);  //Add nodes to the tree
-		return tv;
+		return metricsView;
 	}
 }
