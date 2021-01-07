@@ -15,15 +15,16 @@ public class JarHandler {
     private ObservableList<MetricsImpl> packages = FXCollections.observableArrayList();
 
     // Return the jar file classes from this method
-    public ObservableList<MetricsImpl> process(File jarFile) throws IOException {
-        return getJar(jarFile);
+    public void process(File jarFile) throws IOException {
+        getJar(jarFile);
     }
 
     // Get the jar file, called in process for abstraction
-    private ObservableList<MetricsImpl> getJar(File jarFile) throws IOException {
+    private void getJar(File jarFile) throws IOException {
             JarInputStream in = new JarInputStream(new FileInputStream(jarFile));
 
             JarEntry next = in.getNextJarEntry();
+            MetricsFactory mf = MetricsFactory.getInstance();
 
             while (next != null) {
                 if (next.getName().endsWith(".class")) {
@@ -40,11 +41,9 @@ public class JarHandler {
                         boolean isInterface = cls.isInterface();
                         int modifiers = cls.getModifiers();
 
-                        System.out.println(modifiers);
-
                         MetricsImpl met = new MetricsImpl(className, decMethods, isInterface, modifiers);
 
-                        packages.add(met);
+                        mf.add(met);
 
                     } catch (ClassNotFoundException | NoClassDefFoundError e) {
                         System.out.println("" + e);
@@ -52,6 +51,5 @@ public class JarHandler {
                 }
                 next = in.getNextJarEntry();
             }
-            return packages;
     }
 }

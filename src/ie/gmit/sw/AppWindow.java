@@ -17,8 +17,10 @@ import javafx.stage.*;
 import javafx.util.*;
 
 public class AppWindow extends Application {
-	private ObservableList<MetricsImpl> metrics;
-	private TableView<MetricsImpl> metricsView;
+	private MetricsFactory metf = MetricsFactory.getInstance();
+	private ObservableList<MetricsImpl> metrics = metf.getMetrics();
+	private TableView<MetricsImpl> metricsView = new TableView<>(metrics);
+
 	private ObservableList<MetricsImpl> metricsImplArr = FXCollections.observableArrayList();
 	private Database db = new Database();
 
@@ -74,7 +76,7 @@ public class AppWindow extends Application {
 
 		Button btnSelect = new Button("Save to Database"); //A Leaf node
 		btnSelect.setOnAction(e -> { //Plant an observer on the button
-			db.saveToDatabase();
+			db.go();
 
 			MetricsImpl cls = metricsView.getSelectionModel().getSelectedItem();
 			System.out.println(cls);
@@ -87,8 +89,7 @@ public class AppWindow extends Application {
 		btnYurt.setOnAction(e -> { //Plant an observer on the button
 			MetricsImpl cls = metricsView.getSelectionModel().getSelectedItem();
 			System.out.println(cls.getClassName());
-
-			db.go();
+			db.saveToDatabase();
 		});
 		toolBar.getItems().add(btnYurt); //Add to the parent node and build the tree
 		
@@ -130,21 +131,13 @@ public class AppWindow extends Application {
 			File file = new File(txtFile.getText());
 
 			System.out.println("[INFO] Processing Jar File " + file.getName());
+
 			try {
-				metricsImplArr = handle.process(file);
+				handle.process(file);
 			} catch (IOException ioException) {
 				ioException.printStackTrace();
 			}
 
-			// Loop over the arraylist of packages and add to List
-			for(MetricsImpl met : metricsImplArr) {
-				metrics.add(
-						new MetricsImpl(met.getClassName(),
-								met.getPackageName(),
-								met.getIsInterface(),
-								met.getModifiers())
-				);
-			}
 		});
 
 		ToolBar tb = new ToolBar(); //A composite node

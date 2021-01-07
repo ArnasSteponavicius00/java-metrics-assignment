@@ -15,7 +15,7 @@ public class Database {
 
     public void go() {
         root = MetricsFactory.getInstance().getMetrics();
-        db = EmbeddedStorage.start(root, Paths.get("./data"));
+        db = EmbeddedStorage.start(root.toArray(), Paths.get("./data"));
         query();
         db.shutdown();
     }
@@ -29,7 +29,7 @@ public class Database {
     private void query() {
         System.out.println("\n[Query] Show all Classes");
         root.stream()
-                .forEach(System.out::println);;
+                .forEach(System.out::println);
     }
 
 }

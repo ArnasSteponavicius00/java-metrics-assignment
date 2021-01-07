@@ -16,4 +16,8 @@ public class MetricsFactory {
 	}
 	
 	public ObservableList<MetricsImpl> getMetrics() { return model; }
+
+	public void add(MetricsImpl metric) {
+		model.add(metric);
+	}
 }

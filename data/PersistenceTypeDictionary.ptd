@@ -440,59 +440,7 @@
 0000000000001000061 java.util.Collections$EmptyList{}
 0000000000001000062 java.util.Collections$EmptySet{}
 0000000000001000063 java.util.Collections$EmptyMap{}
-0000000000001000064 com.sun.javafx.collections.ObservableListWrapper{
-	com.sun.javafx.collections.ListListenerHelper javafx.collections.ObservableListBase           #listenerHelper ,
-	javafx.collections.ListChangeBuilder          javafx.collections.ObservableListBase           #changeBuilder  ,
-	java.util.List                                com.sun.javafx.collections.ObservableListWrapper#backingList    ,
-	com.sun.javafx.collections.ElementObserver    com.sun.javafx.collections.ObservableListWrapper#elementObserver,
-	com.sun.javafx.collections.SortHelper         com.sun.javafx.collections.ObservableListWrapper#helper         ,
-}
-0000000000001000066 javafx.collections.ObservableListBase{}
-0000000000001000067 com.sun.javafx.collections.ListListenerHelper{}
-0000000000001000069 javafx.collections.ListChangeBuilder{
-	javafx.collections.ObservableListBase          javafx.collections.ListChangeBuilder#list             ,
-	java.util.List                                 javafx.collections.ListChangeBuilder#addRemoveChanges ,
-	java.util.List                                 javafx.collections.ListChangeBuilder#updateChanges    ,
-	javafx.collections.ListChangeBuilder$SubChange javafx.collections.ListChangeBuilder#permutationChange,
-	int                                            javafx.collections.ListChangeBuilder#changeLock       ,
-}
-0000000000001000070 java.util.List{}
-0000000000001000071 javafx.collections.ListChangeBuilder$SubChange{
-	java.util.List javafx.collections.ListChangeBuilder$SubChange#removed,
-	[I             javafx.collections.ListChangeBuilder$SubChange#perm   ,
-	int            javafx.collections.ListChangeBuilder$SubChange#from   ,
-	int            javafx.collections.ListChangeBuilder$SubChange#to     ,
-	boolean        javafx.collections.ListChangeBuilder$SubChange#updated,
-}
-0000000000001000072 com.sun.javafx.collections.ElementObserver{
-	javafx.util.Callback                  com.sun.javafx.collections.ElementObserver#extractor        ,
-	javafx.util.Callback                  com.sun.javafx.collections.ElementObserver#listenerGenerator,
-	javafx.collections.ObservableListBase com.sun.javafx.collections.ElementObserver#list             ,
-	java.util.IdentityHashMap             com.sun.javafx.collections.ElementObserver#elementsMap      ,
-}
-0000000000001000073 javafx.util.Callback{}
-0000000000001000074 com.sun.javafx.collections.SortHelper{
-	[I com.sun.javafx.collections.SortHelper#permutation       ,
-	[I com.sun.javafx.collections.SortHelper#reversePermutation,
-}
-0000000000001000075 com.sun.javafx.collections.ListListenerHelper$Generic{
-	[Ljavafx.beans.InvalidationListener;     com.sun.javafx.collections.ListListenerHelper$Generic#invalidationListeners,
-	[Ljavafx.collections.ListChangeListener; com.sun.javafx.collections.ListListenerHelper$Generic#changeListeners      ,
-	int                                      com.sun.javafx.collections.ListListenerHelper$Generic#invalidationSize     ,
-	int                                      com.sun.javafx.collections.ListListenerHelper$Generic#changeSize           ,
-	boolean                                  com.sun.javafx.collections.ListListenerHelper$Generic#locked               ,
-}
-0000000000001000076 [Ljavafx.beans.InvalidationListener;{
-	[list] elements(
-		javafx.beans.InvalidationListener element,
-	),
-}
-0000000000001000077 [Ljavafx.collections.ListChangeListener;{
-	[list] elements(
-		javafx.collections.ListChangeListener element,
-	),
-}
-0000000000001000078 ie.gmit.sw.MetricsImpl{
+0000000000001000064 ie.gmit.sw.MetricsImpl{
 	java.lang.String ie.gmit.sw.MetricsImpl#className  ,
 	java.lang.String ie.gmit.sw.MetricsImpl#packageName,
 	boolean          ie.gmit.sw.MetricsImpl#isInterface,
