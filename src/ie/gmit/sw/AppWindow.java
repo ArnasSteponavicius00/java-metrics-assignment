@@ -3,6 +3,12 @@ package ie.gmit.sw;
 import java.io.*;
 import java.time.*;
 import java.time.format.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.jar.JarEntry;
+import java.util.jar.JarInputStream;
+
 import javafx.application.*;
 import javafx.beans.property.*;
 import javafx.beans.value.*;
@@ -19,52 +25,29 @@ import javafx.util.*;
 public class AppWindow extends Application {
 	private ObservableList<Customer> customers; //The Model - a list of observers.
 	private TableView<Customer> tv; //The View - a composite of GUI components
-	private TextField txtFile; //A control, part of the View and a leaf node.
-	
+
+	private ObservableList<Classes> classes;
+	private TableView<Classes> classestv;
+
+	private TextField txtFile;
+
+	private List<String> packages = new ArrayList<>();
+
 	@Override
-	public void start(Stage stage) throws Exception { //This is a ***Template Method***
-		CustomerFactory cf = CustomerFactory.getInstance(); //Get the singleton instance
-		customers = cf.getCustomers(); //Get the Model 
-		
-		/*
-		 * The GUI is based on the ** Composite Pattern ** and is a tree of nodes, some
-		 * of which are composite nodes (containers) and some are leaf nodes (controls).
-		 * A stage contains 1..n scenes, each of which is a container window for other
-		 * containers or controls.
-		 * 
-		 * JavaFX, Android and most GUI frameworks allow the creation of windows using
-		 * a declarative format, typically XML. In the case of JavaFX, the syntax is 
-		 * called FXML. The idea of this (which is quite an old one!), is to separate
-		 * the View from the Controller and Model (good practice) and allow non-programmers
-		 * to create Views in XML using SceneBuilder or the equivalent that should integrate 
-		 * seamlessly with a suite of controllers and models designed by a programmer. In 
-		 * practice, I find that XML slows down development to a crawl and I prefer to 
-		 * programme the GUI from scratch, as it's much quicker, even if it is verbose.
-		 */
+	public void start(Stage stage) throws Exception {
+		CustomerFactory cf = CustomerFactory.getInstance();
+		customers = cf.getCustomers();
+
+		ClassFactory clf = ClassFactory.getInstance();
+		classes = clf.getClasses();
+
 		stage.setTitle("GMIT - B.Sc. in Computing (Software Development)");
 		stage.setWidth(800);
 		stage.setHeight(600);
-		
-		
-		/* The following is an example of the ** Observer Pattern**. Use a lambda 
-		 * expression to plant an EventHandler<WindowEvent> observer on the stage
-		 * close button. The "click" will be queued and handled by an event dispatch
-		 * thread when it gets a chance.
-		 */
+
 		stage.setOnCloseRequest((e) -> System.exit(0));
-		
-		/* 
-		 * Create the MVC View using the **Composite Pattern**. We can Build the GUi 
-		 * tree using one or more composites to create branches and one or more controls 
-		 * to handle user interactions. Composites and containers and controls are leaf 
-		 * nodes that the user can send gestures to. 
-		 * 
-		 * The root container we will use is a VBox. All the subtypes of the class Pane
-		 * are composite nodes and can be used as containers for other nodes (composites
-		 * and leaf nodes). The choice of container is also an example of the **Strategy
-		 * Pattern**. The Scene object is the Context and the layout container (AnchorPane,
-		 * BorderPanel, VBox, FlowPane etc) is a concrete strategy. 
-		 */
+
+
 		VBox box = new VBox();
 		box.setPadding(new Insets(10));
 		box.setSpacing(8);
@@ -81,17 +64,7 @@ public class AppWindow extends Application {
 		
 		Button btnAdd = new Button("Add"); //A Leaf node
 		btnAdd.setOnAction(e -> { //Plant an observer on the button
-			/*
-			 * For the sake of simplicity of explanation, the instance of Customer is
-			 * hard-wired into the application. The important things to note are the
-			 * following:
-			 * 
-			 *   1) This lambda implementation of EventHandler<ActionEvent> is an 
-			 *      example of a **Controller** in the MVC. 
-			 *   2) We update the View (TableView) by changing the Model (ObservableList), 
-			 *      i.e. we never directly update the view.
-			 * 
-			 */
+
 			customers.add(
 					new Customer("Sideshow Bob", 
 							LocalDateTime.of(1970, 7, 7, 0, 0), 
@@ -99,6 +72,7 @@ public class AppWindow extends Application {
 							new Image(new File("./images/bob.png").toURI().toString()))
 			);
 		});
+
 		toolBar.getItems().add(btnAdd); //Add to the parent node and build the tree
 		
 		
@@ -112,27 +86,49 @@ public class AppWindow extends Application {
 			
 			Customer c = tv.getSelectionModel().getSelectedItem();
 			customers.remove(c);
+
+			Classes cls = classestv.getSelectionModel().getSelectedItem();
+			classes.remove(cls);
 		});
 		toolBar.getItems().add(btnDelete); //Add to the parent node and build the tree
+
+
+		Button btnSelect = new Button("Select"); //A Leaf node
+		btnSelect.setOnAction(e -> { //Plant an observer on the button
+
+
+			Classes cls = classestv.getSelectionModel().getSelectedItem();
+			try {
+//				String className = cls.toString();
+//				className.replace("/", ".");
+
+				//System.out.println(className);
+
+				Class cs = Class.forName("org.apache.commons.text.AlphabetConverter");
+
+				System.out.println(cs.getDeclaredMethods());
+			} catch (ClassNotFoundException classNotFoundException) {
+				classNotFoundException.printStackTrace();
+			}
+
+		});
+		toolBar.getItems().add(btnSelect); //Add to the parent node and build the tree
 		
 		/*
 		 * Add all the sub trees of nodes to the parent node and build the tree
 		 */
 		box.getChildren().add(getFileChooserPane(stage)); //Add the sub tree to the main tree
-		box.getChildren().add(getTableView()); //Add the sub tree to the main tree
+
+		box.getChildren().add(getClassView());
+		box.getChildren().add(getTableView());
+
 		box.getChildren().add(toolBar); //Add the sub tree to the main tree
-		box.getChildren().add(new PolyPanel());
+
 		// Display the window
 		stage.show();
 		stage.centerOnScreen();
 	}
 
-	/*
-	 *  This method builds a TitledPane containing the controls for the file chooser 
-	 *  part of the application. We could have created a specialised instance of the
-	 *  class TitledPane using inheritance and moved all of the method into its own
-	 *  class (OCP).  
-	 */
 	private TitledPane getFileChooserPane(Stage stage) {
 		VBox panel = new VBox(); //** A concrete strategy ***
 
@@ -150,11 +146,21 @@ public class AppWindow extends Application {
 		// Process the Jar File
 		Button btnProcess = new Button("Process"); //A leaf node
 		btnProcess.setOnAction(e -> { //Plant an observer on the button
-			JarLoader jl = new JarLoader();
 			File f = new File(txtFile.getText());
+			ClassFactory clf = ClassFactory.getInstance();
+			JarLoader jl = new JarLoader();
 
 			System.out.println("[INFO] Processing file " + f.getName());
-			jl.getJar(f);
+			packages = jl.process(f);
+
+			System.out.println(packages);
+
+			// Loop over the arraylist of packages
+			for(String names : packages) {
+				classes.add(
+						new Classes(names)
+				);
+			}
 		});
 		
 		ToolBar tb = new ToolBar(); //A composite node
@@ -168,40 +174,68 @@ public class AppWindow extends Application {
 		tp.setCollapsible(false);
 		return tp;
 	}
-	
-	/*
-	 * This method builds a table to display the customer details. This View
-	 * could also have been encapsulated inside its own class using the signature
-	 * 
-	 * public class CustomerTableView extends TableView<Customer>
-	 * 
-	 */
+
+	private TableView<Classes> getClassView() {
+		classestv = new TableView<>(classes); //A TableView is a composite node
+		classestv.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY); //Stretch columns to fit the window
+
+		TableColumn<Classes, String> name = new TableColumn<>("Class Name");
+		name.setCellValueFactory(new Callback<CellDataFeatures<Classes, String>, ObservableValue<String>>() {
+			public ObservableValue<String> call(CellDataFeatures<Classes, String> p) {
+				return new SimpleStringProperty(p.getValue().name());
+			}
+		});
+
+		//Creates an observable table column from a String field extracted from the Customer class
+//		TableColumn<Classes, Number> loc = new TableColumn<>("LOC");
+//
+//		loc.setCellValueFactory(new Callback<CellDataFeatures<Classes, Number>, ObservableValue<Number>>() {
+//			public ObservableValue<Number> call(CellDataFeatures<Classes, Number> p) {
+//				return new SimpleIntegerProperty(p.getValue().loc());
+//			}
+//		});
+//
+//		TableColumn<Classes, Number> sloc = new TableColumn<>("SLOC");
+//
+//		sloc.setCellValueFactory(new Callback<CellDataFeatures<Classes, Number>, ObservableValue<Number>>() {
+//			public ObservableValue<Number> call(CellDataFeatures<Classes, Number> p) {
+//				return new SimpleIntegerProperty(p.getValue().sloc());
+//			}
+//		});
+
+		classestv.getColumns().add(name);
+//		classestv.getColumns().add(loc);
+//		classestv.getColumns().add(sloc);
+
+		return classestv;
+	}
+
 	private TableView<Customer> getTableView() {
 		/*
 		 * The next line is **very important**. We configure a View (TableView) with
-		 * a Model (ObservableList<Customer>). The Model is observable and will 
-		 * propagate any changes to it to the View or Views that render it. 
+		 * a Model (ObservableList<Customer>). The Model is observable and will
+		 * propagate any changes to it to the View or Views that render it.
 		 */
 		tv = new TableView<>(customers); //A TableView is a composite node
 		tv.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY); //Stretch columns to fit the window
-		
-		
+
+
 		/*
-		 *  Create a TableColumn from the class Customer that displays some attribute 
+		 *  Create a TableColumn from the class Customer that displays some attribute
 		 *  as a String. This field is Observable and the method call() will be fired
 		 *  when the table is being refreshed or when the model is updated. The instance
 		 *  of the interface Callback is implemented as an anonymous inner class and acts
 		 *  as a Controller for the table column. Callback is also an example of an Observer
-		 *  and the inner class a ConcreteObserver. The method call() is analogous to the 
+		 *  and the inner class a ConcreteObserver. The method call() is analogous to the
 		 *  notify() method in the Observer Pattern.
 		 */
-		TableColumn<Customer, String> name = new TableColumn<>("Name");
+		TableColumn<Customer, String> name = new TableColumn<>("Methods");
 		name.setCellValueFactory(new Callback<CellDataFeatures<Customer, String>, ObservableValue<String>>() {
 			public ObservableValue<String> call(CellDataFeatures<Customer, String> p) {
 				return new SimpleStringProperty(p.getValue().name());
 			}
 		});
-		
+
 		//Creates an observable table column from a String field extracted from the Customer class
 		TableColumn<Customer, String> dob = new TableColumn<>("DOB");
 		dob.setCellValueFactory(new Callback<CellDataFeatures<Customer, String>, ObservableValue<String>>() {
