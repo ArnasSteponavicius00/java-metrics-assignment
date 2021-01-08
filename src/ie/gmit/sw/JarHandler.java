@@ -1,55 +1,64 @@
 package ie.gmit.sw;
 
-import javafx.collections.FXCollections;
-import javafx.collections.ObservableList;
-
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.jar.JarEntry;
 import java.util.jar.JarInputStream;
 
+/**
+ * Processes the JAR file and its metrics.
+ *
+ * @author Arnas Steponavicius
+ */
 public class JarHandler {
-    private ObservableList<MetricsImpl> packages = FXCollections.observableArrayList();
+    private MetricsFactory mf = MetricsFactory.getInstance();
 
-    // Return the jar file classes from this method
+    /**
+     * @param jarFile - JAR File passed in for processing its metrics.
+     * @throws IOException
+     */
     public void process(File jarFile) throws IOException {
-        getJar(jarFile);
+        handleJar(jarFile);
     }
 
-    // Get the jar file, called in process for abstraction
-    private void getJar(File jarFile) throws IOException {
-            JarInputStream in = new JarInputStream(new FileInputStream(jarFile));
+    /**
+     * @param jarFile - Needs to be processed and metrics to be extracted.
+     * @throws IOException
+     */
+    private void handleJar(File jarFile) throws IOException {
+        JarInputStream in = new JarInputStream(new FileInputStream(jarFile));
 
-            JarEntry next = in.getNextJarEntry();
-            MetricsFactory mf = MetricsFactory.getInstance();
+        JarEntry next = in.getNextJarEntry();
 
-            while (next != null) {
-                if (next.getName().endsWith(".class")) {
-                    String name = next.getName().replaceAll("/", "\\.");
-                    name = name.replaceAll(".class", "");
+        while (next != null) {
+            if (next.getName().endsWith(".class")) {
+                String name = next.getName().replaceAll("/", "\\.");
+                name = name.replaceAll(".class", "");
 
-                    if (!name.contains("$")) name.substring(0, name.length() -".class".length());
+                if (!name.contains("$"))
+                    name.substring(0, name.length() - ".class".length());
 
-                    try {
-                        Class cls = Class.forName(name);
+                try {
+                    Class<?> cls = Class.forName(name);
 
-                        String className = cls.getName();
-                        String decMethods = cls.getConstructors().toString();
-                        boolean isInterface = cls.isInterface();
-                        int modifiers = cls.getModifiers();
+                    String className = cls.getName();
+                    String decMethods = cls.getConstructors().toString();
+                    boolean isInterface = cls.isInterface();
+                    boolean isRecord = cls.isRecord();
+                    int modifiers = cls.getModifiers();
 
-                        MetricsImpl met = new MetricsImpl(className, decMethods, isInterface, modifiers);
+                    // Create a new metrics object with the processed values
+                    MetricsImpl met = new MetricsImpl(className, decMethods, isInterface, isRecord, modifiers);
 
-                        mf.add(met);
+                    // Add these metrics to the Observable list handled by the MetricsFactory()
+                    mf.add(met);
 
-                    } catch (ClassNotFoundException | NoClassDefFoundError e) {
-                        System.out.println("" + e);
-                    }
+                } catch (ClassNotFoundException | NoClassDefFoundError e) {
+                    System.out.println("" + e);
                 }
-                next = in.getNextJarEntry();
             }
+            next = in.getNextJarEntry();
+        }
     }
 }

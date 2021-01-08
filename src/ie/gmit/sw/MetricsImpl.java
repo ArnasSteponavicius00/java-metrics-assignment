@@ -1,25 +1,26 @@
 package ie.gmit.sw;
 
-/*
- *  Customer is a record or a read-only bean class with a constructor that 
- *  matches the set of parameters in the record signature and a suite of 
- *  accessor methods. The default implementation of the methods equals() and 
- *  hashCode() aggregate all the attributes of the record.
- */
 
-public class MetricsImpl implements Metrics{
+/**
+ * Implements the Metrics Interface, used to get and set the metric values
+ * @author Arnas Steponavicius
+ *
+ */
+public class MetricsImpl implements Metrics {
     private String className;
-    private String packageName;
+    private String decMethod;
     private boolean isInterface;
+    private boolean isRecord;
     private int modifiers;
 
     public MetricsImpl() {
     }
 
-    public MetricsImpl(String className, String packageName, boolean isInterface, int modifiers) {
+    public MetricsImpl(String className, String decMethod, boolean isInterface, boolean isRecord, int modifiers) {
         this.className = className;
-        this.packageName = packageName;
+        this.decMethod = decMethod;
         this.isInterface = isInterface;
+        this.isRecord = isRecord;
         this.modifiers = modifiers;
     }
 
@@ -31,12 +32,12 @@ public class MetricsImpl implements Metrics{
         this.className = className;
     }
 
-    public String getPackageName() {
-        return packageName;
+    public String getDeclaredMethod() {
+        return decMethod;
     }
 
-    public void setPackageName(String packageName) {
-        this.packageName = packageName;
+    public void setDeclaredMethod(String decMethod) {
+        this.decMethod = decMethod;
     }
 
     public boolean getIsInterface() {
@@ -53,5 +54,15 @@ public class MetricsImpl implements Metrics{
 
     public void setModifiers(int modifiers) {
         this.modifiers = modifiers;
+    }
+
+    @Override
+    public boolean getIsRecord() {
+        return isRecord;
+    }
+
+    @Override
+    public void setRecord(boolean isRecord) {
+        this.isRecord = isRecord;
     }
 }
